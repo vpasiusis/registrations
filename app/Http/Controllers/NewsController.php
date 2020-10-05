@@ -14,9 +14,10 @@ class NewsController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index($bank_id)
     {
-        return response()->json(News::get(),200);
+        $news = News::where('bank_id', $bank_id)->get();
+        return response()->json($news,200);
     }
 
     /**
@@ -35,22 +36,31 @@ class NewsController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(Request $request,$bank_id)
     {
         $rules = [
             'content' => 'required|min:20',
             'title' => 'required|min:4',
             'specialist_id' => 'required|min:1',
-            'bank_id' => 'required|min:1',
             'expires_in' => 'required|date',
         ];
         
         $validator = Validator::make($request->all(), $rules);
 
+
+
         if($validator->fails()){
             return response()->json(["message"=>$validator->errors()],400); 
         }
-        $news = News::create($request->all());
+
+        $news = News::create([
+    		'content' => request('content'),
+    		'title' => request('title'),
+            'specialist_id' => request('specialist_id'),
+            'expires_in' => request('expires_in'),
+            'bank_id' => $bank_id
+    	]);
+      
         return response()->json($news,201);
     }
 
@@ -60,9 +70,9 @@ class NewsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($bank_id,$id)
     {
-        $news = News::find($id);
+        $news = News::where('bank_id', $bank_id)->find($id);
         if(is_null($news)){
             return response()->json(["message"=>"Record not found"],404); 
         }
@@ -87,9 +97,9 @@ class NewsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request,$bank_id, $id)
     {
-        $news = News::find($id);
+        $news = News::where('bank_id', $bank_id)->find($id);
         if(is_null($news)){
             return response()->json(["message"=>"Record not found"],404); 
         }
@@ -104,9 +114,9 @@ class NewsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy($bank_id,$id)
     {
-        $news = News::find($id);
+        $news = News::where('bank_id', $bank_id)->find($id);
         if(is_null($news)){
             return response()->json(["message"=>"Record not found"],404); 
         }
