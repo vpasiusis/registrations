@@ -65,7 +65,7 @@ class VisitController extends Controller
     {
         $visit = Visit::find($id);
         if(is_null($visit)){
-            return response()->json(["message"=>"Record not found"],404); 
+            return response()->json(["message"=>"Records not found"],404); 
         }
         return response()->json(Visit::find($id),200);
     }
