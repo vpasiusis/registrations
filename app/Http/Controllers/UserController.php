@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\QueryExceptio;
 use App\Models\User;
 use Validator;
 use DB;
@@ -64,13 +65,21 @@ class UserController extends Controller
         if($validator->fails()){
             return response()->json(["message"=>$validator->errors()],400); 
         }
-        $user = User::create([
-    		'name' => request('name'),
-    		'email' => request('email'),
-            'password' => bcrypt(request('password')),
-            'type' => request('type'),
-            'type' => request('bank_id')
-    	]);
+       
+        try {
+            $user = User::create([
+                'name' => request('name'),
+                'email' => request('email'),
+                'password' => bcrypt(request('password')),
+                'type' => request('type'),
+                'bank_id' => 0
+            ]);
+        } catch (Illuminate\Database\QueryException $e){
+            $errorCode = $e->errorInfo[1];
+            if($errorCode == 1062){
+                return response()->json(["message"=>"Email already exists"],405); 
+            }
+        }
         return response()->json($user,201);
     }
     
@@ -86,20 +95,30 @@ class UserController extends Controller
         ];
 
         $validator = Validator::make($request->all(), $rules);
-
+      
         if($validator->fails()){
             return response()->json(["message"=>$validator->errors()],400); 
         }
-       // $user = User::create($request->all());
-        $user = User::create([
-    		'name' => request('name'),
-    		'email' => request('email'),
-            'password' => bcrypt(request('password')),
-            'type' => request('type'),
-            'bank_id' => 0
-    	]);
+        
+       try {
+            $user = [
+                'name' => request('name'),
+                'email' => request('email'),
+                'password' => bcrypt(request('password')),
+                'type' => request('type'),
+                'bank_id' => 0
+            ];
+            DB::table('users')->insert($user);
+        } catch(\Illuminate\Database\QueryException $e){
+            $errorCode = $e->errorInfo[1];
+            if($errorCode == '1062'){
+                return response()->json(["message"=>"Email already exists"],401); 
+            }
+        }
+        return response()->json($user,208);
+       
       
-        return response()->json($user,201);
+        
     }
 
     public function login(Request $request) {

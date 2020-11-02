@@ -28,3 +28,6 @@ Route::group(array('prefix' => '/v1'), function() {
    
 });
 
+Route::any('{catchall}', function() {
+    return Response::json(["message"=>"Route not found"],404); 
+  })->where('catchall', '.*');
