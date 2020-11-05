@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\QueryExceptio;
+use Illuminate\Database\QueryException;
 use App\Models\User;
 use Validator;
 use DB;
@@ -15,74 +16,34 @@ class UserController extends Controller
 {
 
     private $client;
-
+    protected $request;
     /**
      * DefaultController constructor.
      */
-    public function __construct()
+    public function __construct(Request $request)
     {
         $this->client = DB::table('oauth_clients')->where('id', 1)->first();
+        $this->request=$request;
     }
+
 
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(User::get(),200);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        $rules = [
-            'name' => 'required|min:5',
-            'password' => 'required|min:8',
-            'type' => 'required|min:1',
-            'bank_id' => 'required|min:1',
-            'email' => 'email:rfc,dns',
-        ];
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if($validator->fails()){
-            return response()->json(["message"=>$validator->errors()],400); 
+        if($this->checkIfSuperrior(2)){
+            return response()->json(User::get(),200);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
        
-        try {
-            $user = User::create([
-                'name' => request('name'),
-                'email' => request('email'),
-                'password' => bcrypt(request('password')),
-                'type' => request('type'),
-                'bank_id' => 0
-            ]);
-        } catch (Illuminate\Database\QueryException $e){
-            $errorCode = $e->errorInfo[1];
-            if($errorCode == 1062){
-                return response()->json(["message"=>"Email already exists"],405); 
-            }
-        }
-        return response()->json($user,201);
     }
-    
+
+
+
     public function register(Request $request)
     {
       
@@ -115,13 +76,14 @@ class UserController extends Controller
                 return response()->json(["message"=>"Email already exists"],401); 
             }
         }
-        return response()->json($user,208);
+        return response()->json($user,201);
        
       
         
     }
 
     public function login(Request $request) {
+       
         $request->validate([
              'email' => 'required|string|email',
              'password’ => ‘required|string'
@@ -156,11 +118,18 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::find($id);
-        if(is_null($user)){
-            return response()->json(["message"=>"Record not found"],404); 
+        if($this->checkIfSuperrior(2)){
+            $user = User::find($id);
+            if(is_null($user)){
+                return response()->json(["message"=>"Record not found"],404); 
+            }
+            return response()->json($user,200);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
-        return response()->json($user,200);
+     
+
+
     }
 
     /**
@@ -183,13 +152,61 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = User::find($id);
-        if(is_null($user)){
-            return response()->json(["message"=>"Record not found"],404); 
+        if($this->checkIfSuperrior(1)){
+            $user = User::find($id);
+            if(is_null($user)){
+                return response()->json(["message"=>"Record not found"],404); 
+            }
+          
+            $user->update($request->all());
+            return response()->json($user, 200);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
-      
-        $user->update($request->all());
-        return response()->json($user, 200);
+       
+    }
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        if($this->checkIfSuperrior(1)){
+            $rules = [
+                'name' => 'required|min:5',
+                'password' => 'required|min:8',
+                'type' => 'required|min:1',
+                'bank_id' => 'required|min:1',
+                'email' => 'email:rfc,dns',
+            ];
+    
+            $validator = Validator::make($request->all(), $rules);
+    
+            if($validator->fails()){
+                return response()->json(["message"=>$validator->errors()],400); 
+            }
+            try {
+                $user = [
+                    'name' => request('name'),
+                    'email' => request('email'),
+                    'password' => bcrypt(request('password')),
+                    'type' => request('type'),
+                    'bank_id' => 0
+                ];
+                DB::table('users')->insert($user);
+            } catch(\Illuminate\Database\QueryException $e){
+                $errorCode = $e->errorInfo[1];
+                if($errorCode == '1062'){
+                    return response()->json(["message"=>"Email already exists"],401); 
+                }
+            }
+            return response()->json($user,201);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
+        }
+       
     }
 
     /**
@@ -200,11 +217,24 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        $user = User::find($id);
-        if(is_null($user)){
-            return response()->json(["message"=>"Record not found"],404); 
+        if($this->checkIfSuperrior(1)){
+            $user = User::find($id);
+            if(is_null($user)){
+                return response()->json(["message"=>"Record not found"],404); 
+            }
+            $user->delete();
+            return response()->json("DELETED", 204);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
-        $user->delete();
-        return response()->json("DELETED", 204);
+       
+    }
+
+    public function checkIfSuperrior($type) {
+        if(auth('api')->user()->type<=$type){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

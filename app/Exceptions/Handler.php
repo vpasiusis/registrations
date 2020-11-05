@@ -5,8 +5,9 @@ namespace App\Exceptions;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Auth\AuthenticationException;
 
-class Handler extends ExceptionHandler
+class Handler extends ExceptionHandler  
 {
     /**
      * A list of the exception types that are not reported.
@@ -35,6 +36,10 @@ class Handler extends ExceptionHandler
     public function register()
     {
         //
+    }
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+        return response()->json(['error' => 'Unauthenticated.'], 401);
     }
 
     

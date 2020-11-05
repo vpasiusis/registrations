@@ -15,7 +15,11 @@ class VisitController extends Controller
      */
     public function index()
     {
-        return response()->json(Visit::get(),200);
+        if($this->checkIfSuperrior(2)){
+            return response()->json(Visit::get(),200);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
+        }
     }
 
     /**
@@ -42,6 +46,7 @@ class VisitController extends Controller
             'specialist_id' => 'required|min:1',
             'bank_id' => 'required|min:1',
             'state' => 'required|min:1',
+            'userId' => 'required|min:1',
             'starting_time' => 'required|date',
             'ending_time' => 'required|date',
         ];
@@ -70,16 +75,7 @@ class VisitController extends Controller
         return response()->json(Visit::find($id),200);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
+    
 
     /**
      * Update the specified resource in storage.
@@ -97,6 +93,7 @@ class VisitController extends Controller
       
         $visit->update($request->all());
         return response()->json($visit, 200);
+        
     }
 
     /**
@@ -107,11 +104,24 @@ class VisitController extends Controller
      */
     public function destroy($id)
     {
-        $visit = Visit::find($id);
-        if(is_null($visit)){
-            return response()->json(["message"=>"Record not found"],404); 
+        if($this->checkIfSuperrior(1)){
+            $visit = Visit::find($id);
+            if(is_null($visit)){
+                return response()->json(["message"=>"Record not found"],404); 
+            }
+            $visit->delete();
+            return response()->json("DELETED", 204);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
-        $visit->delete();
-        return response()->json("DELETED", 204);
+      
+    }
+
+    public function checkIfSuperrior($type) {
+        if(auth('api')->user()->type<=$type){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

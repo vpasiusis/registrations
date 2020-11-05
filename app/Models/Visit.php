@@ -16,6 +16,7 @@ class Visit extends Model
         'type',
         'specialist_id',
         'bank_id',
+        'userId',
         'state',
         'starting_time',
         'ending_time',

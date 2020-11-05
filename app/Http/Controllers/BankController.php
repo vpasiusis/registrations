@@ -36,19 +36,23 @@ class BankController extends Controller
      */
     public function store(Request $request)
     {
-        $rules = [
-            'name' => 'required|min:3',
-            'location' => 'required|min:4',
-            'workers_number' => 'required|min:1',
-        ];
-        
-        $validator = Validator::make($request->all(), $rules);
-
-        if($validator->fails()){
-            return response()->json(["message"=>$validator->errors()],400); 
+        if($this->checkIfSuperrior(1)){
+            $rules = [
+                'name' => 'required|min:3',
+                'location' => 'required|min:4',
+                'workers_number' => 'required|min:1',
+            ];
+            
+            $validator = Validator::make($request->all(), $rules);
+    
+            if($validator->fails()){
+                return response()->json(["message"=>$validator->errors()],400); 
+            }
+            $bank = Bank::create($request->all());
+            return response()->json($bank,201);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
-        $bank = Bank::create($request->all());
-        return response()->json($bank,201);
     }
 
     /**
@@ -86,13 +90,17 @@ class BankController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $bank = Bank::find($id);
+        if($this->checkIfSuperrior(2)){
+            $bank = Bank::find($id);
         
-        if(is_null($bank)){
-            return response()->json(["message"=>"Record not found"],404); 
+            if(is_null($bank)){
+                return response()->json(["message"=>"Record not found"],404); 
+            }
+            $bank->update($request->all());
+            return response()->json($bank, 200);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
-        $bank->update($request->all());
-        return response()->json($bank, 200);
     }
 
     /**
@@ -103,11 +111,23 @@ class BankController extends Controller
      */
     public function destroy($id)
     {
-        $bank = Bank::find($id);
-        if(is_null($bank)){
-            return response()->json(["message"=>"Record not found"],404); 
+        if($this->checkIfSuperrior(1)){
+            $bank = Bank::find($id);
+            if(is_null($bank)){
+                return response()->json(["message"=>"Record not found"],404); 
+            }
+            $bank->delete();
+            return response()->json("DELTED", 204);
+        }else{
+            return response()->json(["message"=>'Your user do not have permissions to do this'],400); 
         }
-        $bank->delete();
-        return response()->json("DELTED", 204);
+    }
+
+    public function checkIfSuperrior($type) {
+        if(auth('api')->user()->type<=$type){
+            return true;
+        }else{
+            return false;
+        }
     }
 }
